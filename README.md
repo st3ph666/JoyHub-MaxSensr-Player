@@ -52,11 +52,11 @@ Example Debian/Ubuntu packages:
 sudo apt install python3 python3-tk mpv python3-venv
 ```
 
-Create a virtual environment and install Bleak:
+Create a virtual environment and install the Python requirements:
 
 ```bash
 python3 -m venv ~/venv-maxsensr
-~/venv-maxsensr/bin/pip install bleak
+~/venv-maxsensr/bin/pip install -r requirements.txt
 ```
 
 ## Run
