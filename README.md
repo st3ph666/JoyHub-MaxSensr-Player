@@ -9,6 +9,11 @@ The interface is available in **English and French** and can switch language dir
 - Direct BLE connection to `J-MaxSensr`
 - Synchronized video playback with MPV
 - Automatic `.funscript` detection
+- Complete folder playlist support
+- Remembers the last selected folder and video
+- Optional resume from the last playback position
+- Persistent resume position stored independently for each video
+- Automatic cleanup of the saved position when a video finishes normally
 - Oscillation (OSC), vibration (VIB), and constriction (CON) controls
 - Independent enable/disable controls for OSC, VIB, and CON
 - Live control adjustments during playback
@@ -24,7 +29,8 @@ The interface is available in **English and French** and can switch language dir
 - Automatic next-video option
 - Optional delete-after-playback
 - French / English interface
-- More tolerant funscript loader for standard JSON and concatenated JSON blocks
+- Tolerant funscript loader for standard JSON and concatenated JSON blocks
+- Atomic persistent configuration saving
 
 ## Screenshots
 
@@ -62,10 +68,20 @@ python3 -m venv ~/venv-maxsensr
 ## Run
 
 ```bash
-~/venv-maxsensr/bin/python MaxSensr-Funscript-Player-v1.4.13.py
+~/venv-maxsensr/bin/python MaxSensr-Funscript-Player-v1.4.15-PersistentResume.py
 ```
 
-Choose a video. The player looks for the corresponding `.funscript`, connects to the MaxSensr over BLE, and synchronizes the enabled functions with playback.
+You can select a single video or load a complete folder as a playlist. The player searches for the matching `.funscript`, connects to the MaxSensr over BLE, and synchronizes the enabled functions with playback.
+
+The player can remember the last selected video and its playback position. When **Resume video** is enabled, reopening the application restores the last video and resumes from its saved position.
+
+## Funscript lookup
+
+For each video, the player checks for the matching funscript in this order:
+
+1. A `Funscript` subfolder beside the video
+2. A `.funscript` file beside the video
+3. The configured global `Funscript` directory
 
 ## Ultra-slow oscillation
 
@@ -83,16 +99,21 @@ Start with conservative levels and verify the device response before increasing 
 
 ## Version
 
-**v1.4.13 — FR/EN + Funscript Loader Fix**
+**v1.4.15 — Persistent Resume**
 
 Highlights of this release:
 
-- French / English interface switching
-- Live controls retained
-- Ultra-slow OSC pulse controls retained
-- Seek/reconnect fix retained
-- Improved funscript loading for files that contain concatenated JSON blocks
-- Improved dark combobox readability and accessibility
+- Added complete-folder playlist loading
+- Remembers the last folder and last selected video
+- Restores the last video when the application starts
+- Added optional per-video playback resume
+- Saves playback positions periodically and when playback stops
+- Improved persistent and atomic configuration saving
+- Improved funscript discovery in local `Funscript` subfolders
+- Retains the robust concatenated-JSON funscript loader from v1.4.13
+- Retains French / English interface switching
+- Retains live OSC, VIB and CON controls
+- Retains Ultra-slow OSC pulse controls
 
 ## License
 
