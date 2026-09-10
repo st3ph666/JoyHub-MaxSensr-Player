@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
-from __future__ import annotations
+"""MaxSensr BLE worker, Funscript helpers, and Tkinter application."""
 
+from __future__ import annotations
 import asyncio
 import json
 import math
@@ -16,35 +16,12 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from .settings import *  # noqa: F403,F401
+
 try:
     from bleak import BleakClient, BleakScanner
 except ImportError:
     BleakClient = BleakScanner = None
-
-APP_VERSION = "v1.4.15-PersistentResume"
-APP_NAME = f"JoyHub MaxSensr Funscript Player {APP_VERSION}"
-
-VIDEO_DIR = Path("/media/Video2/ABCD/")
-SCRIPT_DIR = VIDEO_DIR / "Funscript"
-CONFIG = Path.home() / ".config/maxsensr-player-gui.json"
-VIDEO_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".m4v"}
-
-DEVICE_NAME = "J-MaxSensr"
-WRITE_UUID = "0000ffa1-0000-1000-8000-00805f9b34fb"
-
-# Valeurs validées lors du test BLE direct.
-MOTOR_MIN = 0x01
-MOTOR_MAX = 0xE8
-CON_MAX = 0x05
-
-PROFILES = {
-    "Doux": dict(osc_min=8, osc_max=48, vib_min=18, vib_max=68, con_level=3, con_threshold=82),
-    "Normal": dict(osc_min=10, osc_max=68, vib_min=30, vib_max=100, con_level=5, con_threshold=58),
-    "Fort": dict(osc_min=16, osc_max=82, vib_min=42, vib_max=100, con_level=5, con_threshold=50),
-    "Osc dominant": dict(osc_min=14, osc_max=88, vib_min=20, vib_max=72, con_level=4, con_threshold=68),
-    "Vib dominant": dict(osc_min=8, osc_max=52, vib_min=48, vib_max=100, con_level=5, con_threshold=60),
-    "Con accentué": dict(osc_min=8, osc_max=58, vib_min=30, vib_max=92, con_level=5, con_threshold=45),
-}
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
@@ -80,12 +57,12 @@ def find_script(video):
     return None
 
 def load_actions(path):
-    """Charge un funscript standard ou plusieurs blocs JSON concaténés.
 
-    Certains générateurs/exporteurs écrivent plusieurs objets JSON à la suite
-    (souvent un objet par ligne). json.loads() lève alors ``Extra data``.
-    On accepte ici les deux formats sans modifier les funscripts standards.
-    """
+
+
+
+
+
     text = path.read_text(encoding="utf-8-sig")
     decoder = json.JSONDecoder()
     values = []
@@ -147,7 +124,7 @@ class BLEWorker:
         self.ipc_path = None
 
     def request_seek(self, target_ms):
-        """Demande un seek absolu. Le thread BLE l'applique à MPV."""
+
         with self.seek_lock:
             self.requested_seek_ms = max(0, int(target_ms))
 
@@ -186,9 +163,9 @@ class BLEWorker:
         try:
             asyncio.run(self._run())
         except Exception as e:
-            # Un périphérique BLE peut parfois se déconnecter exactement à la fin.
-            # Si MPV était déjà dans les 2 dernières secondes, on traite quand même
-            # cela comme une fin naturelle et on passe à la vidéo suivante.
+            
+            
+            
             near_end = (
                 self.duration_ms > 0
                 and self.last_tms >= max(0.0, self.duration_ms - 2000.0)
@@ -215,7 +192,7 @@ class BLEWorker:
 
     async def _stop_all(self, client):
         try:
-            # Toujours couper Vib/Osc d'abord, puis le solénoïde/Con.
+            
             await self._write(client, motion_packet(0, 0))
             await asyncio.sleep(.10)
             await self._write(client, con_packet(0))
@@ -242,7 +219,7 @@ class BLEWorker:
             raise RuntimeError("Funscript vide ou insuffisant.")
 
         # ---------------------------------------------------------
-        # MPV démarre UNE SEULE FOIS et reste indépendant des
+        
         # reconnexions Bluetooth.
         # ---------------------------------------------------------
         self.ipc_path = str(
@@ -314,7 +291,7 @@ class BLEWorker:
                 and self.process.poll() is None
             ):
                 # -------------------------------------------------
-                # Connexion / reconnexion MaxSensr
+                
                 # -------------------------------------------------
                 self.app.after(
                     0,
@@ -343,8 +320,8 @@ class BLEWorker:
                         ),
                     )
 
-                    # Après une reconnexion, aucun actionneur ne doit repartir
-                    # immédiatement avec un ancien état.
+                    
+                    
                     await self._stop_all(client)
                     await asyncio.sleep(0.35)
 
@@ -380,7 +357,7 @@ class BLEWorker:
                         # -----------------------------------------
                         requested = self._take_seek()
                         if requested is not None:
-                            # STOP physique avant le seek.
+                            
                             await self._stop_all(client)
                             await mpv_cmd(
                                 ["set_property", "time-pos", requested / 1000.0]
@@ -397,7 +374,7 @@ class BLEWorker:
                             )
                             break
 
-                        # MPV horloge maître, polling ~20 Hz.
+                        
                         if now - last_mpv_poll >= 0.050:
                             try:
                                 cached_tms = await mpv_time_ms()
@@ -419,10 +396,10 @@ class BLEWorker:
                         self.last_tms = tms
 
                         # -----------------------------------------
-                        # Seek effectué directement dans MPV.
-                        # Si la position saute de > 1.2 s, on arrête
+                        
+                        
                         # totalement les moteurs puis on FERME la
-                        # connexion BLE. La boucle externe reconnecte.
+                        
                         # -----------------------------------------
                         if (
                             previous_mpv_tms is not None
@@ -563,12 +540,12 @@ class BLEWorker:
 
                         # -------------------------------------------------
                         # OSC ultra-lent par impulsions.
-                        # Le contrôleur interne du MaxSensr reste trop rapide
-                        # même à faible consigne. On garde donc la consigne
-                        # funscript/lissée, mais on coupe périodiquement l'OSC.
-                        # Avec 150 ms ON / 350 ms OFF, le moteur n'est alimenté
+                        
+                        
+                        
+                        
                         # qu'environ 30 % du temps. Les commandes BLE restent
-                        # limitées à ~10 Hz, donc le réglage réel est quantifié
+                        
                         # par pas d'environ 100 ms.
                         # -------------------------------------------------
                         osc_output = smooth_osc
@@ -579,8 +556,8 @@ class BLEWorker:
                             cycle_s = (on_ms + off_ms) / 1000.0
                             phase_s = now % cycle_s
                             if phase_s < on_ms / 1000.0:
-                                # La force est indépendante de ON/OFF : elle limite
-                                # seulement la puissance envoyée pendant l'impulsion.
+                                
+                                
                                 osc_output = clamp(smooth_osc * force_pct / 100.0, 0.0, 100.0)
                             else:
                                 osc_output = 0.0
@@ -618,7 +595,7 @@ class BLEWorker:
                             con_active = False
                             con_rearm_at = now + .50
 
-                        # Commandes Vib/Osc limitées à ~10 Hz.
+                        
                         if now - last_send >= .100:
                             await self._write(
                                 client,
@@ -651,16 +628,16 @@ class BLEWorker:
 
                         await asyncio.sleep(.01)
 
-                    # Toujours stopper avant de laisser fermer
-                    # la connexion Bluetooth.
+                    
+                    
                     await self._stop_all(client)
 
-                # Ici l'async-with a réellement fermé le BLE.
+                
                 if reconnect_for_seek and not self.stop_evt.is_set():
                     reconnect_count += 1
 
-                    # Laisser le périphérique/BlueZ respirer avant
-                    # une nouvelle connexion.
+                    
+                    
                     await asyncio.sleep(1.5)
 
                     # MPV continue pendant la reconnexion.
@@ -732,128 +709,8 @@ class BLEWorker:
                 await asyncio.sleep(2)
             await self._stop_all(c)
 
-
-
-VIB_PATTERNS = [
-    "Funscript direct", "Continu", "Pulsation lente", "Pulsation moyenne",
-    "Pulsation rapide", "Double pulse", "Triple pulse", "Battement",
-    "Battement rapide", "Montée progressive", "Descente progressive",
-    "Vague lente", "Vague rapide", "Escalier montant", "Escalier descendant",
-    "Alternance faible/fort", "Burst court", "Burst moyen", "Burst long",
-    "3 courts + 1 long", "1 long + 3 courts", "Mitraillette", "Staccato",
-    "Respiration", "Heartbeat", "Heartbeat rapide", "Rampe cyclique",
-    "Triangle lent", "Triangle rapide", "Saw montant", "Saw descendant",
-    "Random doux", "Random moyen", "Random fort", "Random extrême",
-    "Micro-pulses", "Macro-pulses", "Pause courte", "Pause moyenne",
-    "Pause longue", "Progressif 3 niveaux", "Progressif 5 niveaux",
-    "100% intermittent", "50/100 alterné", "25/75/100", "Écho",
-    "Double écho", "Vague double", "Ultra rapide", "Chaos contrôlé",
-]
-
-CON_PATTERNS = [
-    "Funscript direct", "Pompage continu", "Pompage lent", "Pompage moyen",
-    "Pompage rapide", "Pompe courte", "Pompe moyenne", "Pompe longue",
-    "Double pompe", "Triple pompe", "Pompe + pause courte",
-    "Pompe + pause moyenne", "Pompe + pause longue", "2 courtes + 1 longue",
-    "1 longue + 2 courtes", "Progressif lent", "Progressif rapide",
-    "Alternance court/long", "Burst x3", "Burst x5", "Respiration",
-    "Battement", "Battement double", "Vague", "Escalier 3 niveaux",
-    "Escalier 5 niveaux", "Random doux", "Random moyen", "Random rapide",
-    "Rafale", "Rafale + pause", "Maintien court", "Maintien moyen",
-    "Maintien long", "Micro-pompes", "Macro-pompes", "Sync pics",
-    "Sync descentes", "Sync changements", "50/50", "25/75", "75/25",
-    "Court-court-long", "Long-court-court", "Pause 1 s", "Pause 2 s",
-    "Pause 3 s", "Ultra rapide", "Cycle profond", "Chaos contrôlé",
-]
-
-
-PROFILE_EN = {
-    "Doux": "Gentle",
-    "Normal": "Normal",
-    "Fort": "Strong",
-    "Osc dominant": "OSC dominant",
-    "Vib dominant": "VIB dominant",
-    "Con accentué": "CON enhanced",
-}
-
-VIB_PATTERN_EN = {
-    "Funscript direct": "Direct funscript", "Continu": "Continuous",
-    "Pulsation lente": "Slow pulse", "Pulsation moyenne": "Medium pulse",
-    "Pulsation rapide": "Fast pulse", "Double pulse": "Double pulse",
-    "Triple pulse": "Triple pulse", "Battement": "Beat", "Battement rapide": "Fast beat",
-    "Montée progressive": "Progressive rise", "Descente progressive": "Progressive fall",
-    "Vague lente": "Slow wave", "Vague rapide": "Fast wave", "Escalier montant": "Ascending steps",
-    "Escalier descendant": "Descending steps", "Alternance faible/fort": "Low/high alternating",
-    "Burst court": "Short burst", "Burst moyen": "Medium burst", "Burst long": "Long burst",
-    "3 courts + 1 long": "3 short + 1 long", "1 long + 3 courts": "1 long + 3 short",
-    "Mitraillette": "Machine gun", "Staccato": "Staccato", "Respiration": "Breathing",
-    "Heartbeat": "Heartbeat", "Heartbeat rapide": "Fast heartbeat", "Rampe cyclique": "Cyclic ramp",
-    "Triangle lent": "Slow triangle", "Triangle rapide": "Fast triangle", "Saw montant": "Rising saw",
-    "Saw descendant": "Falling saw", "Random doux": "Gentle random", "Random moyen": "Medium random",
-    "Random fort": "Strong random", "Random extrême": "Extreme random", "Micro-pulses": "Micro pulses",
-    "Macro-pulses": "Macro pulses", "Pause courte": "Short pause", "Pause moyenne": "Medium pause",
-    "Pause longue": "Long pause", "Progressif 3 niveaux": "3-level progressive",
-    "Progressif 5 niveaux": "5-level progressive", "100% intermittent": "100% intermittent",
-    "50/100 alterné": "50/100 alternating", "25/75/100": "25/75/100", "Écho": "Echo",
-    "Double écho": "Double echo", "Vague double": "Double wave", "Ultra rapide": "Ultra fast",
-    "Chaos contrôlé": "Controlled chaos",
-}
-
-CON_PATTERN_EN = {
-    "Funscript direct": "Direct funscript", "Pompage continu": "Continuous pumping",
-    "Pompage lent": "Slow pumping", "Pompage moyen": "Medium pumping", "Pompage rapide": "Fast pumping",
-    "Pompe courte": "Short pump", "Pompe moyenne": "Medium pump", "Pompe longue": "Long pump",
-    "Double pompe": "Double pump", "Triple pompe": "Triple pump", "Pompe + pause courte": "Pump + short pause",
-    "Pompe + pause moyenne": "Pump + medium pause", "Pompe + pause longue": "Pump + long pause",
-    "2 courtes + 1 longue": "2 short + 1 long", "1 longue + 2 courtes": "1 long + 2 short",
-    "Progressif lent": "Slow progressive", "Progressif rapide": "Fast progressive",
-    "Alternance court/long": "Short/long alternating", "Burst x3": "Burst x3", "Burst x5": "Burst x5",
-    "Respiration": "Breathing", "Battement": "Beat", "Battement double": "Double beat", "Vague": "Wave",
-    "Escalier 3 niveaux": "3-level steps", "Escalier 5 niveaux": "5-level steps",
-    "Random doux": "Gentle random", "Random moyen": "Medium random", "Random rapide": "Fast random",
-    "Rafale": "Burst", "Rafale + pause": "Burst + pause", "Maintien court": "Short hold",
-    "Maintien moyen": "Medium hold", "Maintien long": "Long hold", "Micro-pompes": "Micro pumps",
-    "Macro-pompes": "Macro pumps", "Sync pics": "Sync peaks", "Sync descentes": "Sync drops",
-    "Sync changements": "Sync changes", "50/50": "50/50", "25/75": "25/75", "75/25": "75/25",
-    "Court-court-long": "Short-short-long", "Long-court-court": "Long-short-short",
-    "Pause 1 s": "1 s pause", "Pause 2 s": "2 s pause", "Pause 3 s": "3 s pause",
-    "Ultra rapide": "Ultra fast", "Cycle profond": "Deep cycle", "Chaos contrôlé": "Controlled chaos",
-}
-
-UI_TEXT = {
-    "fr": {
-        "graph_title": "FUNSCRIPT PRINCIPAL — trame complète", "point": "point", "points": "points",
-        "subtitle": "BLE direct • Osc + Vib + Con • MPV écran de droite", "video_script": "Vidéo / Funscript",
-        "video": "Vidéo", "browse": "Parcourir", "folder": "Dossier", "script": "Script", "profile_functions": "Profil / Fonctions",
-        "profile": "Profil", "language": "Langue", "fullscreen": "Plein écran droite", "enable": "Activer",
-        "ultraslow": "Mode ultra-lent par impulsions", "transition": "Transition", "pulse_on": "Impulsion ON",
-        "pause_off": "Pause OFF", "pulse_force": "Force impulsion", "smoothing": "Liss.",
-        "vib_duration": "Durée VIB", "pattern": "Pattern", "level": "Niv.", "threshold": "Seuil",
-        "pump_duration": "Durée pompage", "auto_next": "Vidéo suivante auto", "delete_after": "Supprimer après lecture", "resume_video": "Reprendre la vidéo où elle a été arrêtée",
-        "play": "▶ Lancer", "next": "⏩ Suivante", "test_osc": "Test OSC", "test_vib": "Test VIB",
-        "test_con": "Test CON", "stop": "■ STOP", "choose_video_graph": "Choisis une vidéo avec son funscript",
-        "no_script": "Aucun script sélectionné", "choose_start": "Choisis une vidéo pour commencer.",
-        "inactive": "INACTIF", "active": "ACTIF",
-    },
-    "en": {
-        "graph_title": "MAIN FUNSCRIPT — full timeline", "point": "point", "points": "points",
-        "subtitle": "Direct BLE • Osc + Vib + Con • MPV on right screen", "video_script": "Video / Funscript",
-        "video": "Video", "browse": "Browse", "folder": "Folder", "script": "Script", "profile_functions": "Profile / Functions",
-        "profile": "Profile", "language": "Language", "fullscreen": "Fullscreen right screen", "enable": "Enable",
-        "ultraslow": "Ultra-slow pulse mode", "transition": "Transition", "pulse_on": "Pulse ON",
-        "pause_off": "Pause OFF", "pulse_force": "Pulse force", "smoothing": "Smooth",
-        "vib_duration": "VIB duration", "pattern": "Pattern", "level": "Level", "threshold": "Threshold",
-        "pump_duration": "Pump duration", "auto_next": "Auto play next video", "delete_after": "Delete after playback", "resume_video": "Resume video where it was stopped",
-        "play": "▶ Play", "next": "⏩ Next", "test_osc": "Test OSC", "test_vib": "Test VIB",
-        "test_con": "Test CON", "stop": "■ STOP", "choose_video_graph": "Choose a video with its funscript",
-        "no_script": "No script selected", "choose_start": "Choose a video to begin.",
-        "inactive": "INACTIVE", "active": "ACTIVE",
-    },
-}
-
-
 def pattern_gate(name, t, duration_ms=900):
-    """Retourne 0..1 selon le pattern choisi; conserve le funscript comme enveloppe."""
+
     import math, random
     d = max(0.15, duration_ms / 1000.0)
     phase = t % max(d, 0.001)
@@ -987,13 +844,13 @@ class App(tk.Tk):
         self.osc_max = tk.DoubleVar(value=80)
         self.osc_amp = tk.DoubleVar(value=100)
         self.osc_transition_ms = tk.IntVar(value=2500)
-        # Mode ultra-lent : le moteur OSC fonctionne par impulsions ON/OFF.
-        # Cela réduit la vitesse moyenne sans modifier la mécanique de l'appareil.
+        
+        
         self.osc_pulse_enabled = tk.BooleanVar(value=True)
         self.osc_pulse_on_ms = tk.IntVar(value=150)
         self.osc_pulse_off_ms = tk.IntVar(value=350)
-        # Force appliquée uniquement pendant la phase ON du mode impulsion.
-        # 100 % = consigne OSC normale; 50 % = moitié de cette consigne.
+        
+        
         self.osc_pulse_force = tk.DoubleVar(value=60)
 
         self.vib_enabled = tk.BooleanVar(value=True)
@@ -1054,8 +911,8 @@ class App(tk.Tk):
         self.vib_pattern_display.set(self._pattern_to_display(self.vib_pattern.get(), "vib"))
         self.con_pattern_display.set(self._pattern_to_display(self.con_pattern.get(), "con"))
 
-        # Le texte d'absence de funscript doit lui aussi suivre la langue.
-        # On ne touche jamais à un vrai chemin de fichier déjà sélectionné.
+        
+        
         script_text = self.script_path.get().strip()
         if script_text in ("Aucun script sélectionné", "No script selected"):
             self.script_path.set(self.tr("no_script"))
@@ -1076,7 +933,7 @@ class App(tk.Tk):
             self.con_pattern.set(self._display_to_pattern(self.con_pattern_display.get(), "con"))
 
     def change_language(self, *_):
-        """Change la langue de toute l'interface sans arrêter la lecture."""
+
         self._sync_display_vars()
         for child in list(self.winfo_children()):
             child.destroy()
@@ -1089,7 +946,7 @@ class App(tk.Tk):
 
 
     def _install_live_controls(self):
-        """Rend les réglages moteurs réellement live pendant la lecture."""
+
         live_vars = (
             self.osc_enabled, self.osc_min, self.osc_max, self.osc_amp,
             self.osc_transition_ms, self.osc_pulse_enabled,
@@ -1103,8 +960,8 @@ class App(tk.Tk):
             var.trace_add("write", self._push_live_settings)
 
     def _push_live_settings(self, *_):
-        # Cette méthode est appelée dans le thread Tk. On prend un snapshot
-        # puis on met à jour le dictionnaire déjà utilisé par le worker BLE.
+        
+        
         try:
             new_settings = self.settings()
             if self.worker.settings is not None:
@@ -1146,8 +1003,8 @@ class App(tk.Tk):
                   foreground=[("readonly", c["text"])])
 
         # Combobox sombre, lisible et surtout cliquable sous Tk/X11.
-        # On évite les options de padding/selectbackground qui peuvent rendre
-        # le bouton de flèche inactif avec certains thèmes KDE/Tk.
+        
+        
         style.configure(
             "Dark.TCombobox",
             fieldbackground="#15171c",
@@ -1163,7 +1020,7 @@ class App(tk.Tk):
             background=[("active", "#343841")],
         )
 
-        # Couleurs de la liste déroulante sous Tk/X11.
+        
         try:
             self.option_add("*TCombobox*Listbox.background", "#15171c")
             self.option_add("*TCombobox*Listbox.foreground", "#ffffff")
@@ -1195,7 +1052,7 @@ class App(tk.Tk):
                   foreground=[("active", c["text"])])
 
     def _bind_combo_click(self, combo):
-        """Force l'ouverture du menu au clic, y compris sous certains thèmes KDE/Tk."""
+
         def _open(event):
             try:
                 event.widget.tk.call("ttk::combobox::Post", str(event.widget))
@@ -1213,7 +1070,7 @@ class App(tk.Tk):
         shell.grid_rowconfigure(0, weight=1)
         shell.grid_rowconfigure(1, weight=1, minsize=260)
 
-        # Trame complète fixe en bas.
+        
         graph_frame = tk.Frame(
             shell, bg="#050609", height=300,
             highlightbackground="#3b4050", highlightthickness=1
@@ -1244,16 +1101,16 @@ class App(tk.Tk):
         )
         self.graph_canvas.pack(side="bottom", fill="both", expand=True)
         self.graph_canvas.bind("<Configure>", lambda _e: self.draw_funscript_graph())
-        # Pendant un glissement, on ne demande PLUS un seek BLE à chaque pixel.
-        # Sinon chaque événement peut provoquer un cycle STOP/déconnexion/reconnexion
-        # et laisser une nouvelle demande de seek en attente pendant la reconnexion.
-        # On déplace seulement le curseur visuel pendant le drag et on envoie UNE
-        # seule demande de seek au relâchement du bouton.
+        
+        
+        
+        
+        
         self.graph_canvas.bind("<Button-1>", self.preview_seek_from_graph)
         self.graph_canvas.bind("<B1-Motion>", self.preview_seek_from_graph)
         self.graph_canvas.bind("<ButtonRelease-1>", self.commit_seek_from_graph)
 
-        # Zone principale compacte : aucun défilement vertical.
+        
         root = ttk.Frame(shell, style="Root.TFrame", padding=(20, 14, 20, 12))
         root.grid(row=0, column=0, sticky="nsew")
         root.columnconfigure(0, weight=1)
@@ -1273,7 +1130,7 @@ class App(tk.Tk):
             style="Subtitle.TLabel"
         ).grid(row=1, column=0, sticky="w", pady=(1, 0))
 
-        # Ligne sélection vidéo/script + profil
+        
         top = ttk.Frame(root, style="Root.TFrame")
         top.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         top.columnconfigure(0, weight=3)
@@ -1332,7 +1189,7 @@ class App(tk.Tk):
         self._bind_combo_click(lang_combo)
         lang_combo.bind("<<ComboboxSelected>>", self.change_language)
 
-        # 3 cartes moteur compactes
+        
         settings_row = ttk.Frame(root, style="Root.TFrame")
         settings_row.grid(row=2, column=0, sticky="ew", pady=(0, 8))
         for i in range(3):
@@ -1518,7 +1375,7 @@ class App(tk.Tk):
         )
 
     def _graph_target_ms(self, event):
-        """Convertit la position X de la souris en position vidéo, en ms."""
+
         if not self.graph_duration_ms:
             return None
         width = max(1, self.graph_canvas.winfo_width())
@@ -1526,7 +1383,7 @@ class App(tk.Tk):
         return int(ratio * self.graph_duration_ms)
 
     def preview_seek_from_graph(self, event):
-        """Pendant clic/glissé : déplace seulement le curseur visuel."""
+
         target_ms = self._graph_target_ms(event)
         if target_ms is None:
             return
@@ -1537,7 +1394,7 @@ class App(tk.Tk):
         )
 
     def commit_seek_from_graph(self, event):
-        """Au relâchement : envoie UNE seule demande de seek au worker."""
+
         target_ms = self._graph_target_ms(event)
         if target_ms is None:
             return
@@ -1545,7 +1402,7 @@ class App(tk.Tk):
         self.draw_playhead_only()
 
         if self.worker.process and self.worker.process.poll() is None:
-            # Écrase une éventuelle vieille demande et n'en laisse qu'une seule.
+            
             with self.worker.seek_lock:
                 self.worker.requested_seek_ms = max(0, int(target_ms))
             self.status_text.set(
@@ -1562,7 +1419,7 @@ class App(tk.Tk):
         self.live_con.set(self.tr("active") if con_active else self.tr("inactive"))
         self.draw_playhead_only()
 
-        # Sauvegarde périodique de la position, séparément pour chaque vidéo.
+        
         if self.current_video and self.resume_video.get():
             now = time.monotonic()
             if now - self.last_position_save_time >= 5.0:
@@ -1585,7 +1442,7 @@ class App(tk.Tk):
         self.status_text.set((f"Profile {self._profile_to_display(self.profile.get())} applied." if self._lang() == "en" else f"Profil {self.profile.get()} appliqué."))
 
     def _set_current_video(self, video, announce=True):
-        """Sélectionne une vidéo et charge automatiquement son funscript."""
+
         video = Path(video)
         self.current_video = video
         self.video_path.set(str(video))
@@ -1707,7 +1564,7 @@ class App(tk.Tk):
                 start_ms = int(self.resume_positions.get(str(video.resolve()), 0) or 0)
             except Exception:
                 start_ms = 0
-            # Une position presque à la fin est considérée comme terminée.
+            
             if self.graph_duration_ms and start_ms >= self.graph_duration_ms - 3000:
                 start_ms = 0
 
@@ -1733,7 +1590,7 @@ class App(tk.Tk):
             )
 
     def stop(self):
-        # Conserver la position avant de couper MPV/BLE.
+        
         if self.current_video and self.graph_position_ms > 0:
             try:
                 self.resume_positions[str(self.current_video.resolve())] = int(self.graph_position_ms)
@@ -1770,7 +1627,7 @@ class App(tk.Tk):
     def on_natural_end(self):
         old_video, old_script = self.current_video, self.current_script
 
-        # Une vidéo terminée naturellement ne doit pas reprendre près de la fin.
+        
         if old_video:
             try:
                 self.resume_positions.pop(str(old_video.resolve()), None)
@@ -1854,7 +1711,7 @@ class App(tk.Tk):
         }
 
     def save_config(self):
-        """Sauvegarde persistante et atomique de l'état de l'application."""
+
         try:
             CONFIG.parent.mkdir(parents=True, exist_ok=True)
             data = self.settings() | {
@@ -1870,12 +1727,12 @@ class App(tk.Tk):
             tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
             tmp.replace(CONFIG)
         except Exception as exc:
-            # Ne jamais faire planter le player pour une erreur de config,
-            # mais conserver l'erreur pour diagnostic dans le terminal.
+            
+            
             print(f"[MaxSensr] Erreur sauvegarde config {CONFIG}: {exc}", file=sys.stderr)
 
     def load_config(self):
-        """Recharge tous les réglages et, explicitement, la dernière vidéo."""
+
         try:
             data = json.loads(CONFIG.read_text(encoding="utf-8"))
         except FileNotFoundError:
@@ -1893,7 +1750,7 @@ class App(tk.Tk):
         if isinstance(rp, dict):
             self.resume_positions = rp
 
-        # Les clés JSON sont "video" et "script", tandis que les variables
+        
         # Tk s'appellent video_path et script_path : il faut les restaurer explicitement.
         video_text = str(data.get("video", "") or "").strip()
         script_text = str(data.get("script", "") or "").strip()
@@ -1901,7 +1758,7 @@ class App(tk.Tk):
         if script_text and Path(script_text).is_file():
             self.script_path.set(f"✓  {script_text}")
 
-        # Restaurer les autres variables Tk connues sans confondre video/script.
+        
         skip = {"video", "script", "last_folder", "playlist_folder", "resume_positions"}
         for k, v in data.items():
             if k in skip:
@@ -1921,7 +1778,7 @@ class App(tk.Tk):
                 self.last_folder = str(video.parent) if not Path(self.last_folder).is_dir() else self.last_folder
 
     def _restore_last_video(self):
-        """Recharge réellement la dernière vidéo et son funscript au démarrage."""
+
         video = self.saved_video_on_startup
         if not video or not Path(video).is_file():
             return
@@ -1962,7 +1819,6 @@ class App(tk.Tk):
         self.save_config()
         self.after(150, self.destroy)
 
-
 def _ensure_venv():
     """Relance automatiquement dans ~/venv-maxsensr si Bleak manque."""
     global BleakClient, BleakScanner
@@ -1980,8 +1836,3 @@ def _ensure_venv():
             [str(vpy), str(Path(__file__).resolve())] + sys.argv[1:],
             env,
         )
-
-
-if __name__ == "__main__":
-    _ensure_venv()
-    App().mainloop()

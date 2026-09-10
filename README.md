@@ -68,7 +68,7 @@ python3 -m venv ~/venv-maxsensr
 ## Run
 
 ```bash
-~/venv-maxsensr/bin/python MaxSensr-Funscript-Player-v1.4.15-PersistentResume.py
+~/venv-maxsensr/bin/python MaxSensr-Funscript-Player-v1.4.16-PersistentResume.py
 ```
 
 You can select a single video or load a complete folder as a playlist. The player searches for the matching `.funscript`, connects to the MaxSensr over BLE, and synchronizes the enabled functions with playback.
@@ -99,7 +99,7 @@ Start with conservative levels and verify the device response before increasing 
 
 ## Version
 
-**v1.4.15 — Persistent Resume**
+**v1.4.16 — Persistent Resume**
 
 Highlights of this release:
 
@@ -118,3 +118,47 @@ Highlights of this release:
 ## License
 
 No license has been selected yet. Add a `LICENSE` file before distributing the project under a specific open-source license.
+
+## uv deployment
+
+The recommended deployment method is [`uv`](https://docs.astral.sh/uv/). The project is configured to use the system Python so Tkinter remains provided by the Linux distribution.
+
+### Debian / Ubuntu
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-tk mpv bluetooth bluez
+```
+
+Install `uv` using its official installation method, then:
+
+```bash
+git clone https://github.com/st3ph666/JoyHub-MaxSensr-Player.git
+cd JoyHub-MaxSensr-Player
+uv sync
+uv run python MaxSensr-Funscript-Player-v1.4.16-PersistentResume.py
+```
+
+`bleak` is installed automatically by `uv sync`. Do not run `uv sync` with `sudo`.
+
+### Update
+
+```bash
+git pull
+uv sync
+uv run python MaxSensr-Funscript-Player-v1.4.16-PersistentResume.py
+```
+
+## Source architecture
+
+```text
+MaxSensr-Funscript-Player-v1.4.16-PersistentResume.py  # Compatibility launcher
+src/maxsensr_player/
+├── __init__.py                                      # Version metadata
+├── settings.py                                      # Device, path and profile constants
+├── app.py                                           # BLE worker, Funscript helpers and Tkinter application
+└── main.py                                          # Application entry point
+```
+
+Source-code comments are maintained in **English only**. French / English user-interface text is preserved.
+
