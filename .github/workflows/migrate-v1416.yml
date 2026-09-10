@@ -1,0 +1,35 @@
+name: Migrate JoyHub MaxSensr Player v1.4.16
+
+on:
+  push:
+    paths:
+      - '.github/workflows/migrate-v1416.yml'
+      - 'tools/migrate_v1416.py'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tkinter for validation
+        run: sudo apt-get update && sudo apt-get install -y python3-tk
+      - name: Migrate source
+        run: python3 tools/migrate_v1416.py
+      - name: Compile modules
+        run: python3 -m compileall -q src/maxsensr_player MaxSensr-Funscript-Player-v1.4.16-PersistentResume.py
+      - name: Verify imports
+        run: PYTHONPATH=src python3 -c 'import maxsensr_player.main'
+      - name: Remove compile caches and migration helpers
+        run: |
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          rm -f tools/migrate_v1416.py .github/workflows/migrate-v1416.yml
+      - name: Commit migrated v1.4.16
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Refactor v1.4.16 into modules with uv deployment'
+          git push
